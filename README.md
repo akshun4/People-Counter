@@ -10,11 +10,15 @@ The program counts number of people coming in towards the camera as coming 'In' 
 # Running the program
 
 ```shell
-python peoplecounter.py -vid Input/2.mp4 -roi manually
+python peoplecounter.py -vid Input/1.mp4 -roi manually
 ``` 
 
 This will take the video 2.mp4 from Input folder and the distinct peoples' images will be stored in the Output_Images folder automatically. The output video, i.e. the video with the detection and counting taking place is saved in Output_Video. 
-You'll have to create the Region of Interest (RoI) manually (by default). The RoI is a thin green rectangle drawn in the first frame which disappears after it is created, and the video is begun retaining only the RoI. However, to minimize repeated efforts for drawing the RoI, you can create it once and test to see if the results are good (preferred to draw a tall RoI which will encompass the entire length of a person; this ensures that different parts of the person recognized do not output as different people). If you have a well created and tested RoI, the program will ask you whether you want to save the RoI for future testing. To use the pre-tested RoIs, just use the argument "pre-tested" instead of "manually" in the command line.  
+You'll have to create the Region of Interest (RoI) manually (by default). The RoI is a thin green rectangle drawn in the first frame which disappears after it is created, and the video is begun retaining only the RoI. However, to minimize repeated efforts for drawing the RoI, you can create it once and test to see if the results are good (preferred to draw a tall RoI which will encompass the entire length of a person; this ensures that different parts of the person recognized do not output as different people). If you have a well created and tested RoI, the program will ask you whether you want to save the RoI for future testing. To use the pre-tested RoIs, just use the argument "pre-tested" instead of "manually" in the command line.  Example: 
+
+```shell
+python peoplecounter.py -vid Input/2.mp4 -roi pre-tested
+``` 
 
 # Input Examples
 
