@@ -18,7 +18,7 @@ roi_mode=args['roi creation mode']
 
 width = 800
 height= 640
-videopath,__=video.split(".")
+videopath,__=video.split(".",-1)
 __,videoname=videopath.split('/',-1)
 counter,textIn,textOut=0,0,0
 imageset=[]
@@ -96,7 +96,7 @@ def feature_matching(img1,img2):
     # Apply ratio test
     good = []
     for m,n in matches:
-        if m.distance < 0.8*n.distance:
+        if m.distance < 0.75*n.distance:
             good.append(m)
 
     return (len(good))
@@ -115,9 +115,8 @@ def create_roi(videopath,roi):
 
 camera = cv2.VideoCapture(video)
 grabbed, frame = camera.read()
-
 # resize the frame, convert it to grayscale, and blur it
-frame = imutils.resize(frame, width=width,height=height)
+frame = imutils.resize(frame)
 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
@@ -137,15 +136,17 @@ elif roi_mode=='pre-tested':
 	
 cv2.destroyWindow('ROI selector')
 
+
+fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+vid_out = cv2.VideoWriter('Output_Video/'+videoname+'.avi', fourcc, 20.0, (int(camera.get(3)), int(camera.get(4))), isColor=True)
 # loop over the frames of the video
 st=0.0
 cs=[0,0]
-tc,tb,cts=0,0,0
+tc,f,tb,cts=0,0,0,0
 while (camera.isOpened()):
     # grab the current frame and initialize the occupied/unoccupied
     # text
     grabbed, frame = camera.read()  
-    text = "Unoccupied"
 
     # if the frame could not be grabbed, then we have reached the end
     # of the video
@@ -153,19 +154,18 @@ while (camera.isOpened()):
         break
     
     # resize the frame, convert it to grayscale, and blur it
-    frame = imutils.resize(frame, width=width,height=height)
+    frame = imutils.resize(frame)
     forig=frame
     frame=frame[roi[1]:roi[1]+roi[3],roi[0]:roi[0]+roi[2]]
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (21, 21), 0)
     
     ori=frame.copy()
-    f=0
-    (rects, weights) = hog.detectMultiScale(gray, winStride=(3, 3),padding=(8, 8), scale=1.2)    
+    (rects, weights) = hog.detectMultiScale(gray, winStride=(4, 4),padding=(8, 8), scale=1.1)    
     for (a, b, c, d) in rects:
-        cv2.rectangle(ori, (a, b), (a + c, b + d), (255,0, 0), 2)
+        cv2.rectangle(ori, (a, b), (a + c, b + d), (255,0, 0), 0)
     rects = np.array([[a, b, a + c, b + d] for (a, b, c, d) in rects])
-    pick = non_max_suppression(rects, probs=None, overlapThresh=0.75)
+    pick = non_max_suppression(rects, probs=None, overlapThresh=0.8)
     #pick = non_max_suppression_fast(rects,overlapThresh=0.85)
     # draw the final bounding boxes
     for (xA, yA, xB, yB) in pick:
@@ -183,7 +183,7 @@ while (camera.isOpened()):
             imageset.append(rectf)
             continue
         u=0
-        if (cts==3 or cts==10) and (textIn+textOut)!=counter:
+        if cts==3 and (textIn+textOut)!=counter:
             if cs[counter]>0:
                 textIn+=1
                 f=1
@@ -191,13 +191,16 @@ while (camera.isOpened()):
                 textOut+=1
                 f=-1	
             cts+=1
-        if (cts==10) and (cs[counter]*f)<0:
+
+        if (cts>=5) and (cs[counter]*f)<0:
             if cs[counter]>0:
                 textIn+=1
                 textOut-=1
+                f=1
             elif cs[counter]<0:
                 textOut+=1
-                textIn-=1       	    
+                textIn-=1 
+                f=-1    	    
         for t in imageset2:
             if feature_matching(rectf,t)>2:
                 u=0
@@ -220,7 +223,7 @@ while (camera.isOpened()):
             pimg='Output_Images/'+videoname+'_person'+str(counter)+'.jpg'
             img=cv2.imwrite(pimg,rectf)
             imageset.append(rectf)
-    	
+    
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
     cv2.rectangle(forig, (roi[0], roi[1]), (roi[0]+roi[2],roi[1]+roi[3]), (0, 255, 0),1)
@@ -230,11 +233,12 @@ while (camera.isOpened()):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
     cv2.putText(forig, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"),
                 (10, forig.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+    vid_out.write(forig)
     cv2.imshow("Security Feed", forig)
-
 
 # cleanup the camera and close any open windows
 camera.release()
+vid_out.release()
 cv2.destroyAllWindows()
 print("No. of images created=",counter)
 if roi_mode=='manually':
